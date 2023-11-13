@@ -1,6 +1,6 @@
 # AWS MySQL Service
 
-Terraform module which deploys MySQL service on AWS.
+Terraform module which deploys [MySQL](https://aws.amazon.com/rds/mysql) service on AWS.
 
 ## Usage
 
