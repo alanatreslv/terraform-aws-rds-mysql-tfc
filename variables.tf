@@ -103,7 +103,7 @@ variable "username" {
 Specify the account username, ref to https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MySQL.KnownIssuesAndLimitations.html#MySQL.Concepts.KnownIssuesAndLimitations.KillProcedures.
 EOF
   type        = string
-  default     = "user"
+  default     = "rdsuser"
   validation {
     condition     = can(regex("^[A-Za-z_]{0,15}[a-z0-9]$", var.username))
     error_message = format("Invalid username: %s", var.username)
