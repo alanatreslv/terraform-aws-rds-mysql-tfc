@@ -77,7 +77,7 @@ EOF
 
 variable "engine_parameters" {
   description = <<-EOF
-Specify the deployment engine parameters, select for https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Reference.html.
+Specify the deployment engine parameters, select for https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.MySQL.Parameters.html.
 EOF
   type = list(object({
     name  = string
