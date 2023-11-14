@@ -1,4 +1,4 @@
-# AWS MySQL Service
+# AWS RDS for MySQL Service
 
 Terraform module which deploys [MySQL](https://aws.amazon.com/rds/mysql) service on AWS.
 
