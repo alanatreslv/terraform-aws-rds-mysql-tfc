@@ -85,9 +85,7 @@ module "this" {
     domain_suffix = aws_service_discovery_private_dns_namespace.example.name
   }
 
-  deployment = {
-    type = "standalone"
-  }
+  depends_on = [aws_service_discovery_private_dns_namespace.example]
 }
 
 output "context" {

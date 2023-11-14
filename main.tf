@@ -7,6 +7,7 @@ locals {
   resource_id      = coalesce(try(var.context["resource"]["id"], null), "example_id")
 
   namespace = join("-", [local.project_name, local.environment_name])
+
   tags = {
     "walrus.seal.io/project-id"       = local.project_id
     "walrus.seal.io/environment-id"   = local.environment_id
@@ -15,6 +16,8 @@ locals {
     "walrus.seal.io/environment-name" = local.environment_name
     "walrus.seal.io/resource-name"    = local.resource_name
   }
+
+  architecture = coalesce(var.architecture, "standalone")
 }
 
 #
@@ -42,7 +45,7 @@ data "aws_subnets" "selected" {
 
   lifecycle {
     postcondition {
-      condition     = var.deployment.type == "replication" ? length(self.ids) > 1 : length(self.ids) > 0
+      condition     = local.architecture == "replication" ? length(self.ids) > 1 : length(self.ids) > 0
       error_message = "Replication mode needs multiple subnets"
     }
   }
@@ -85,7 +88,7 @@ resource "random_string" "name_suffix" {
 locals {
   name     = join("-", [local.resource_name, random_string.name_suffix.result])
   fullname = join("-", [local.namespace, local.name])
-  password = coalesce(var.deployment.password, random_password.password.result)
+  password = coalesce(var.password, random_password.password.result)
 }
 
 #
@@ -95,7 +98,7 @@ locals {
 # create parameters group.
 
 locals {
-  version = coalesce(var.deployment.version, "8.0")
+  version = coalesce(var.engine_version, "8.0")
   parameters = merge(
     {
       innodb_log_buffer_size         = "268435456"
@@ -104,7 +107,7 @@ locals {
       sync_binlog                    = "1000"
     },
     {
-      for c in(var.deployment.parameters != null ? var.deployment.parameters : []) : c.name => c.value
+      for c in(var.engine_parameters != null ? var.engine_parameters : []) : c.name => c.value
       if c.value != ""
     }
   )
@@ -157,23 +160,23 @@ resource "aws_security_group_rule" "target" {
 # create primary instance.
 
 resource "aws_db_instance" "primary" {
-  identifier             = var.deployment.type == "replication" ? join("-", [local.fullname, "primary"]) : local.fullname
+  identifier             = local.architecture == "replication" ? join("-", [local.fullname, "primary"]) : local.fullname
   tags                   = local.tags
-  multi_az               = var.deployment.type == "replication"
+  multi_az               = local.architecture == "replication"
   db_subnet_group_name   = aws_db_subnet_group.target.id
   vpc_security_group_ids = [aws_security_group.target.id]
 
   engine               = "mysql"
   engine_version       = local.version
   parameter_group_name = aws_db_parameter_group.target.name
-  db_name              = coalesce(var.deployment.database, "mydb")
-  username             = coalesce(var.deployment.username, "root")
+  db_name              = coalesce(var.database, "mydb")
+  username             = coalesce(var.username, "user")
   password             = local.password
 
 
-  instance_class    = try(var.deployment.resources.class, "db.t3.medium")
-  storage_type      = try(var.deployment.storage.class, "gp2")
-  allocated_storage = try(var.deployment.storage.size / 1024, 10)
+  instance_class    = try(var.resources.class, "db.t3.medium")
+  storage_type      = try(var.storage.class, "gp2")
+  allocated_storage = try(var.storage.size / 1024, 10)
   storage_encrypted = try(data.aws_kms_key.selected[0].arn != null, false) #tfsec:ignore:aws-rds-encrypt-instance-storage-data
   kms_key_id        = try(data.aws_kms_key.selected[0].arn, null)
 
@@ -194,7 +197,7 @@ resource "aws_db_instance" "primary" {
 # create secondary instance.
 
 resource "aws_db_instance" "secondary" {
-  count = var.deployment.type == "replication" ? 1 : 0
+  count = local.architecture == "replication" ? 1 : 0
 
   replicate_source_db = aws_db_instance.primary.arn
 
@@ -224,7 +227,7 @@ resource "aws_db_instance" "secondary" {
 #
 
 resource "aws_service_discovery_service" "primary" {
-  name          = format("%s.%s", (var.deployment.type == "replication" ? join("-", [local.name, "primary"]) : local.name), local.namespace)
+  name          = format("%s.%s", (local.architecture == "replication" ? join("-", [local.name, "primary"]) : local.name), local.namespace)
   force_destroy = true
 
   dns_config {
@@ -247,7 +250,7 @@ resource "aws_service_discovery_instance" "primay" {
 }
 
 resource "aws_service_discovery_service" "secondary" {
-  count = var.deployment.type == "replication" ? 1 : 0
+  count = local.architecture == "replication" ? 1 : 0
 
   name          = format("%s.%s", join("-", [local.name, "secondary"]), local.namespace)
   force_destroy = true
@@ -263,7 +266,7 @@ resource "aws_service_discovery_service" "secondary" {
 }
 
 resource "aws_service_discovery_instance" "secondary" {
-  count = var.deployment.type == "replication" ? 1 : 0
+  count = local.architecture == "replication" ? 1 : 0
 
   instance_id = aws_db_instance.secondary[0].identifier
   service_id  = aws_service_discovery_service.secondary[0].id

@@ -17,19 +17,19 @@ output "endpoint_internal" {
 
 output "endpoint_internal_readonly" {
   description = "The internal readonly endpoints, a string list, which are used for internal readonly access."
-  value = var.deployment.type == "replication" ? [
+  value = local.architecture == "replication" ? [
     format("%s.%s", aws_service_discovery_service.secondary[0].name, var.infrastructure.domain_suffix)
   ] : null
 }
 
 output "database" {
   description = "The name of database to access."
-  value       = var.deployment.database
+  value       = var.database
 }
 
 output "username" {
   description = "The username of the account to access the database."
-  value       = var.deployment.username
+  value       = var.username
 }
 
 output "password" {

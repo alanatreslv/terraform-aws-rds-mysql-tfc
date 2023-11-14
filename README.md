@@ -2,6 +2,8 @@
 
 Terraform module which deploys [MySQL](https://aws.amazon.com/rds/mysql) service on AWS.
 
+- [x] Support standalone and replication(for high availability).
+
 ## Usage
 
 ```hcl
@@ -9,17 +11,12 @@ module "example" {
   source = "..."
 
   infrastructure = {
-    vpc_id              = "..."
-    default_domain_name = "..."
+    vpc_id        = "..."
+    domain_suffix = "..."
   }
 
-  deployment = {
-    version  = "8.0"          # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MySQL.Concepts.VersionMgmt.html
-    type     = "replication"  # i.e. standalone, replication
-    username = "root"
-    password = "..."
-    database = "mydb"
-  }
+  architecture    = "replication"
+  engine_version  = "8.0"          # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MySQL.Concepts.VersionMgmt.html
 }
 ```
 
@@ -79,7 +76,14 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_context"></a> [context](#input\_context) | Receive contextual information. When Walrus deploys, Walrus will inject specific contextual information into this field.<br><br>Examples:<pre>context:<br>  project:<br>    name: string<br>    id: string<br>  environment:<br>    name: string<br>    id: string<br>  resource:<br>    name: string<br>    id: string</pre> | `map(any)` | `{}` | no |
 | <a name="input_infrastructure"></a> [infrastructure](#input\_infrastructure) | Specify the infrastructure information for deploying.<br><br>Examples:<pre>infrastructure:<br>  vpc_id: string                  # the ID of the VPC where the MySQL service applies<br>  kms_key_id: sting,optional      # the ID of the KMS key which to encrypt the MySQL data<br>  domain_suffix: string           # a private DNS namespace of the CloudMap where to register the applied MySQL service</pre> | <pre>object({<br>    vpc_id        = string<br>    kms_key_id    = optional(string)<br>    domain_suffix = string<br>  })</pre> | n/a | yes |
-| <a name="input_deployment"></a> [deployment](#input\_deployment) | Specify the deployment action, including architecture and account.<br><br>Examples:<pre>deployment:<br>  version: string, optional      # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MySQL.Concepts.VersionMgmt.html<br>  type: string, optional         # i.e. standalone, replication<br>  username: string, optional     # limitation: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MySQL.KnownIssuesAndLimitations.html#MySQL.Concepts.KnownIssuesAndLimitations.KillProcedures<br>  password: string, optional     # limitation: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html#RDS_Limits.Constraints<br>  database: string, optional<br>  parameters:                    # https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Reference.html<br>    - name: string               # unique<br>      value: string<br>  resources:<br>    class: string, optional      # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html#Concepts.DBInstanceClass.Summary<br>  storage:<br>    class: string, optional      # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html<br>    size: number, optional       # in megabyte</pre> | <pre>object({<br>    version  = optional(string, "8.0")<br>    type     = optional(string, "standalone")<br>    username = optional(string, "root")<br>    password = optional(string)<br>    database = optional(string, "mydb")<br>    parameters = optional(list(object({<br>      name  = string<br>      value = string<br>    })))<br>    resources = optional(object({<br>      class = optional(string, "db.t3.medium")<br>    }), { class = "db.t3.medium" })<br>    storage = optional(object({<br>      class = optional(string, "gp2")<br>      size  = optional(number, 20 * 1024)<br>    }), { class = "gp2", size = 20 * 1024 })<br>  })</pre> | <pre>{<br>  "database": "mydb",<br>  "resources": {<br>    "class": "db.t3.medium"<br>  },<br>  "storage": {<br>    "class": "gp2",<br>    "size": 20480<br>  },<br>  "type": "standalone",<br>  "username": "root",<br>  "version": "8.0"<br>}</pre> | no |
+| <a name="input_architecture"></a> [architecture](#input\_architecture) | Specify the deployment architecture, select from standalone or replication. | `string` | `"standalone"` | no |
+| <a name="input_engine_version"></a> [engine\_version](#input\_engine\_version) | Specify the deployment engine version, select from https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MySQL.Concepts.VersionMgmt.html. | `string` | `"8.0"` | no |
+| <a name="input_engine_parameters"></a> [engine\_parameters](#input\_engine\_parameters) | Specify the deployment engine parameters, select for https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Reference.html. | <pre>list(object({<br>    name  = string<br>    value = string<br>  }))</pre> | `null` | no |
+| <a name="input_database"></a> [database](#input\_database) | Specify the database name. | `string` | `"mydb"` | no |
+| <a name="input_username"></a> [username](#input\_username) | Specify the account username, ref to https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MySQL.KnownIssuesAndLimitations.html#MySQL.Concepts.KnownIssuesAndLimitations.KillProcedures. | `string` | `"user"` | no |
+| <a name="input_password"></a> [password](#input\_password) | Specify the account password, ref to https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html#RDS_Limits.Constraints. | `string` | `null` | no |
+| <a name="input_resources"></a> [resources](#input\_resources) | Specify the computing resources.<br><br>Examples:<pre>resources:<br>  class: string, optional         # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html#Concepts.DBInstanceClass.Summary</pre> | <pre>object({<br>    class = optional(string, "db.t3.medium")<br>  })</pre> | <pre>{<br>  "class": "db.t3.medium"<br>}</pre> | no |
+| <a name="input_storage"></a> [storage](#input\_storage) | Specify the storage resources.<br><br>Examples:<pre>storage:<br>  class: string, optional        # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html<br>  size: number, optional         # in megabyte</pre> | <pre>object({<br>    class = optional(string, "gp2")<br>    size  = optional(number, 20 * 1024)<br>  })</pre> | <pre>{<br>  "class": "gp2",<br>  "size": 20480<br>}</pre> | no |
 
 ## Outputs
 
