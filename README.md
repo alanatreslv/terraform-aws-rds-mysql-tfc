@@ -7,7 +7,7 @@ Terraform module which deploys [MySQL](https://aws.amazon.com/rds/mysql) service
 ## Usage
 
 ```hcl
-module "example" {
+module "mysql" {
   source = "..."
 
   infrastructure = {
