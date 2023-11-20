@@ -65,6 +65,8 @@ data "aws_kms_key" "selected" {
 }
 
 data "aws_service_discovery_dns_namespace" "selected" {
+  count = var.infrastructure.domain_suffix != null ? 1 : 0
+
   name = var.infrastructure.domain_suffix
   type = "DNS_PRIVATE"
 }
@@ -233,11 +235,15 @@ resource "aws_db_instance" "secondary" {
 #
 
 resource "aws_service_discovery_service" "primary" {
-  name          = format("%s.%s", (local.architecture == "replication" ? join("-", [local.name, "primary"]) : local.name), local.namespace)
+  count = var.infrastructure.domain_suffix != null ? 1 : 0
+
+  name = format("%s.%s", (local.architecture == "replication" ? join("-", [
+    local.name, "primary"
+  ]) : local.name), local.namespace)
   force_destroy = true
 
   dns_config {
-    namespace_id   = data.aws_service_discovery_dns_namespace.selected.id
+    namespace_id   = data.aws_service_discovery_dns_namespace.selected[0].id
     routing_policy = "WEIGHTED"
     dns_records {
       ttl  = 30
@@ -247,8 +253,10 @@ resource "aws_service_discovery_service" "primary" {
 }
 
 resource "aws_service_discovery_instance" "primay" {
+  count = var.infrastructure.domain_suffix != null ? 1 : 0
+
   instance_id = aws_db_instance.primary.identifier
-  service_id  = aws_service_discovery_service.primary.id
+  service_id  = aws_service_discovery_service.primary[0].id
 
   attributes = {
     AWS_INSTANCE_CNAME = aws_db_instance.primary.address
@@ -256,13 +264,13 @@ resource "aws_service_discovery_instance" "primay" {
 }
 
 resource "aws_service_discovery_service" "secondary" {
-  count = local.architecture == "replication" ? 1 : 0
+  count = var.infrastructure.domain_suffix != null && local.architecture == "replication" ? 1 : 0
 
   name          = format("%s.%s", join("-", [local.name, "secondary"]), local.namespace)
   force_destroy = true
 
   dns_config {
-    namespace_id   = data.aws_service_discovery_dns_namespace.selected.id
+    namespace_id   = data.aws_service_discovery_dns_namespace.selected[0].id
     routing_policy = "WEIGHTED"
     dns_records {
       ttl  = 30
@@ -272,7 +280,7 @@ resource "aws_service_discovery_service" "secondary" {
 }
 
 resource "aws_service_discovery_instance" "secondary" {
-  count = local.architecture == "replication" ? coalesce(var.replication_readonly_replicas, 1) : 0
+  count = var.infrastructure.domain_suffix != null && local.architecture == "replication" ? coalesce(var.replication_readonly_replicas, 1) : 0
 
   instance_id = aws_db_instance.secondary[count.index].identifier
   service_id  = aws_service_discovery_service.secondary[0].id

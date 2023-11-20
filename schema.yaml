@@ -48,23 +48,29 @@ components:
             infrastructure:
               vpc_id: string                  # the ID of the VPC where the MySQL service applies
               kms_key_id: sting,optional      # the ID of the KMS key which to encrypt the MySQL data
-              domain_suffix: string           # a private DNS namespace of the CloudMap where to register the applied MySQL service
+              domain_suffix: string,optional  # a private DNS namespace of the CloudMap where to register the applied MySQL service
             ```
           required:
           - domain_suffix
           - vpc_id
           properties:
             domain_suffix:
+              description: |
+                Specify the domain suffix of the CloudMap. The domain suffix must be a valid DNS name.
               title: Domain Suffix
               type: string
               x-walrus-ui:
                 order: 3
             kms_key_id:
+              description: |
+                Specify the KMS key ID which to encrypt the MySQL data. If not specified, the MySQL data will not be encrypted.
               title: Kms Key Id
               type: string
               x-walrus-ui:
                 order: 2
             vpc_id:
+              description: |
+                Specify the ID of the VPC where the MySQL service applies.
               title: Vpc Id
               type: string
               x-walrus-ui:
@@ -158,6 +164,7 @@ components:
           type: string
           description: |
             Specify the account password, ref to https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html#RDS_Limits.Constraints.
+            If not specified, it will generate a random password.
           format: password
           writeOnly: true
           x-walrus-ui:
@@ -178,6 +185,8 @@ components:
             class: db.t3.medium
           properties:
             class:
+              description: |
+                Specify the computing resources. See https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html#Concepts.DBInstanceClass.Summary.
               default: db.t3.medium
               title: Class
               type: string
@@ -202,13 +211,21 @@ components:
             size: 20480
           properties:
             class:
+              description: |
+                Specify the storage class. See https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html.
               default: gp2
               title: Class
               type: string
+              x-walrus-ui:
+                order: 1
             size:
+              description: |
+                Specify the storage size. Unit is megabyte.
               default: 20480
-              title: Size
+              title: Size(MiB)
               type: number
+              x-walrus-ui:
+                order: 2
           x-walrus-ui:
             colSpan: 12
             group: Basic
