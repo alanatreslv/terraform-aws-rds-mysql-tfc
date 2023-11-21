@@ -13,20 +13,6 @@ components:
           type: object
           description: |
             Receive contextual information. When Walrus deploys, Walrus will inject specific contextual information into this field.
-
-            Examples:
-            ```
-            context:
-              project:
-                name: string
-                id: string
-              environment:
-                name: string
-                id: string
-              resource:
-                name: string
-                id: string
-            ```
           default: {}
           additionalProperties:
             type: object
@@ -34,7 +20,7 @@ components:
               colSpan: 12
           x-walrus-ui:
             colSpan: 12
-            group: Basic
+            group: Advanced
             hidden: true
             order: 1
         infrastructure:
@@ -42,16 +28,7 @@ components:
           type: object
           description: |
             Specify the infrastructure information for deploying.
-
-            Examples:
-            ```
-            infrastructure:
-              vpc_id: string                  # the ID of the VPC where the MySQL service applies
-              kms_key_id: sting,optional      # the ID of the KMS key which to encrypt the MySQL data
-              domain_suffix: string,optional  # a private DNS namespace of the CloudMap where to register the applied MySQL service
-            ```
           required:
-          - domain_suffix
           - vpc_id
           properties:
             domain_suffix:
@@ -77,7 +54,7 @@ components:
                 order: 1
           x-walrus-ui:
             colSpan: 12
-            group: Basic
+            group: Advanced
             order: 2
         architecture:
           title: Architecture
@@ -145,7 +122,10 @@ components:
           title: Database
           type: string
           description: |
-            Specify the database name.
+            Specify the database name. The database name must be 2-64 characters long and start with any lower letter, combined with number, or symbols: - _. 
+            The database name cannot be MySQL forbidden keyword.
+          maxLength: 64
+          minLength: 2
           default: mydb
           x-walrus-ui:
             group: Basic
@@ -154,7 +134,11 @@ components:
           title: Username
           type: string
           description: |
-            Specify the account username, ref to https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MySQL.KnownIssuesAndLimitations.html#MySQL.Concepts.KnownIssuesAndLimitations.KillProcedures.
+            Specify the account username. The username must be 2-16 characters long and start with lower letter, combined with number, or symbol: _.
+            The username cannot be MySQL forbidden keyword.
+            See https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/MySQL.KnownIssuesAndLimitations.html#MySQL.Concepts.KnownIssuesAndLimitations.KillProcedures.
+          maxLength: 16
+          minLength: 2
           default: rdsuser
           x-walrus-ui:
             group: Basic
@@ -163,8 +147,11 @@ components:
           title: Password
           type: string
           description: |
-            Specify the account password, ref to https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html#RDS_Limits.Constraints.
+            Specify the account password. The password must be 8-32 characters long and start with any letter, number, or symbols: ! # $ % ^ & * ( ) _ + - =.
             If not specified, it will generate a random password.
+            See https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html#RDS_Limits.Constraints.
+          maxLength: 32
+          minLength: 8
           format: password
           writeOnly: true
           x-walrus-ui:
@@ -175,12 +162,6 @@ components:
           type: object
           description: |
             Specify the computing resources.
-
-            Examples:
-            ```
-            resources:
-              class: string, optional         # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html#Concepts.DBInstanceClass.Summary
-            ```
           default:
             class: db.t3.medium
           properties:
@@ -199,13 +180,6 @@ components:
           type: object
           description: |
             Specify the storage resources.
-
-            Examples:
-            ```
-            storage:
-              class: string, optional        # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html
-              size: number, optional         # in megabyte
-            ```
           default:
             class: gp2
             size: 20480
@@ -230,3 +204,7 @@ components:
             colSpan: 12
             group: Basic
             order: 11
+      x-walrus-ui:
+        groupOrder:
+        - Basic
+        - Advanced
