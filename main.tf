@@ -97,7 +97,11 @@ resource "random_string" "name_suffix" {
 locals {
   name     = join("-", [local.resource_name, random_string.name_suffix.result])
   fullname = join("-", [local.namespace, local.name])
+  database = coalesce(var.database, "mydb")
+  username = coalesce(var.username, "rdsuser")
   password = coalesce(var.password, random_password.password.result)
+
+  replication_readonly_replicas = var.replication_readonly_replicas == 0 ? 1 : var.replication_readonly_replicas
 }
 
 #
@@ -117,7 +121,7 @@ locals {
     },
     {
       for c in(var.engine_parameters != null ? var.engine_parameters : []) : c.name => c.value
-      if c.value != ""
+      if try(c.value != "", false)
     }
   )
 }
@@ -178,8 +182,8 @@ resource "aws_db_instance" "primary" {
   engine               = "mysql"
   engine_version       = local.version
   parameter_group_name = aws_db_parameter_group.target.name
-  db_name              = coalesce(var.database, "mydb")
-  username             = coalesce(var.username, "user")
+  db_name              = local.database
+  username             = local.username
   password             = local.password
 
   instance_class    = try(var.resources.class, "db.t3.medium")
@@ -205,7 +209,7 @@ resource "aws_db_instance" "primary" {
 # create secondary instance.
 
 resource "aws_db_instance" "secondary" {
-  count = local.architecture == "replication" ? coalesce(var.replication_readonly_replicas, 1) : 0
+  count = local.architecture == "replication" ? local.replication_readonly_replicas : 0
 
   replicate_source_db = aws_db_instance.primary.arn
 
@@ -280,7 +284,7 @@ resource "aws_service_discovery_service" "secondary" {
 }
 
 resource "aws_service_discovery_instance" "secondary" {
-  count = var.infrastructure.domain_suffix != null && local.architecture == "replication" ? coalesce(var.replication_readonly_replicas, 1) : 0
+  count = var.infrastructure.domain_suffix != null && local.architecture == "replication" ? local.replication_readonly_replicas : 0
 
   instance_id = aws_db_instance.secondary[count.index].identifier
   service_id  = aws_service_discovery_service.secondary[0].id
