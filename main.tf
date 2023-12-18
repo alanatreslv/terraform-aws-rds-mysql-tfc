@@ -139,7 +139,7 @@ resource "aws_db_parameter_group" "target" {
   family = format("mysql%s", local.version)
 
   dynamic "parameter" {
-    for_each = local.parameters
+    for_each = try(nonsensitive(local.parameters), local.parameters)
     content {
       name         = parameter.key
       value        = parameter.value
