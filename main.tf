@@ -9,7 +9,7 @@ locals {
   namespace = join("-", [local.project_name, local.environment_name])
 
   tags = {
-    "Name" = join("-", [local.namespace, local.resource_name])
+    "Name" = local.resource_name
 
     "walrus.seal.io/catalog-name"     = "terraform-aws-rds-mysql"
     "walrus.seal.io/project-id"       = local.project_id
@@ -134,7 +134,6 @@ resource "random_string" "name_suffix" {
 
 locals {
   name        = join("-", [local.resource_name, random_string.name_suffix.result])
-  fullname    = join("-", [local.namespace, local.name])
   description = "Created by Walrus catalog, and provisioned by Terraform."
   database    = coalesce(var.database, "mydb")
   username    = coalesce(var.username, "rdsuser")
@@ -167,7 +166,7 @@ locals {
 }
 
 resource "aws_db_parameter_group" "target" {
-  name        = local.fullname
+  name        = local.name
   description = local.description
   tags        = local.tags
 
@@ -186,7 +185,7 @@ resource "aws_db_parameter_group" "target" {
 # create subnet group.
 
 resource "aws_db_subnet_group" "target" {
-  name        = local.fullname
+  name        = local.name
   description = local.description
   tags        = local.tags
 
@@ -196,7 +195,7 @@ resource "aws_db_subnet_group" "target" {
 # create security group.
 
 resource "aws_security_group" "target" {
-  name        = local.fullname
+  name        = local.name
   description = local.description
   tags        = local.tags
 
@@ -217,7 +216,7 @@ resource "aws_security_group_rule" "target" {
 # create primary instance.
 
 resource "aws_db_instance" "primary" {
-  identifier = local.architecture == "replication" ? join("-", [local.fullname, "primary"]) : local.fullname
+  identifier = local.architecture == "replication" ? join("-", [local.name, "primary"]) : local.name
   tags       = local.tags
 
   publicly_accessible    = local.publicly_accessible
@@ -257,7 +256,7 @@ resource "aws_db_instance" "primary" {
 resource "aws_db_instance" "secondary" {
   count = local.architecture == "replication" ? local.replication_readonly_replicas : 0
 
-  identifier = join("-", [local.fullname, "secondary", tostring(count.index)])
+  identifier = join("-", [local.name, "secondary", tostring(count.index)])
   tags       = local.tags
 
   replicate_source_db    = aws_db_instance.primary.arn
